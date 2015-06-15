@@ -1,446 +1,393 @@
-
        IDENTIFICATION DIVISION.
       *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
        PROGRAM-ID. REPORTESPROG.
        AUTHOR.
            PROG.ADRIANACORTES
-       INSTALLATION.
        DATE-WRITTEN.
            27/MAY/2015
-       REMARKS.
-           CALCULO CANTIDAD VALOR CHEQUES POR NOCTA Y PTA
        ENVIRONMENT DIVISION.
       *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
        CONFIGURATION SECTION.
+       SOURCE-COMPUTER.
+           IBM-370.
+           OBJECT-COMPUTER.
+           IBM-370.
       *-----------------------
        INPUT-OUTPUT SECTION.
       *-----------------------
        FILE-CONTROL.
-        SELECT ARCH-AI-ARCHIVO-I
-           ASSIGN TO  "C:\USERS\ADRIIIIICS\REPORTEENTRADA.TXT"
-           ORGANIZATION IS LINE SEQUENTIAL.
-
-        SELECT REPO-RO-REPORTE-O
-           ASSIGN TO  "C:\USERS\ADRIIIIICS\REPORTESALIDA1.TXT"
-           ORGANIZATION IS LINE SEQUENTIAL.
-
-       
+        SELECT ARCH-AI-ARCHIVO-I ASSIGN W000-UT-S-DIRECCION-LECTURA
+                                 ORGANIZATION IS LINE SEQUENTIAL.
+        SELECT REPO-R1-REPORTE-O ASSIGN  W000-UT-S-DIRECCION-SALIDA.
        DATA DIVISION.
       *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
        FILE SECTION.
       *-----------------------
        FD ARCH-AI-ARCHIVO-I
-           LABEL RECORDS ARE STANDARD.
-
+           LABEL RECORD STANDARD.
+      *     RECORD CONTAINS 46 CHARACTERS.
        01 RI-REPORTE.
-       
-           05 RI-GPO         PIC XX.
-           05 RI-EMP         PIC XXX.
-           05 RI-PTA         PIC XXX.
-           05 RI-BCO         PIC XXX.
-           05 RI-NOCTA       PIC X(8).
-           05 RI-NOCHEQUE    PIC X(12).
-           05 RI-VALORCHEQUE PIC S9(12)V99.
+           05 RI-GPO                     PIC XX.
+           05 RI-EMP                     PIC XXX.
+           05 RI-PTA                     PIC XXX.
+           05 RI-BCO                     PIC XXX.
+           05 RI-NO-CTA                  PIC X(8).
+           05 RI-NO-CHEQUE               PIC X(12).
+           05 RI-VALOR-CHEQUE            PIC S9(12)V99.
 
-       FD REPO-RO-REPORTE-O
+       FD REPO-R1-REPORTE-O
+           RECORD CONTAINS 90 CHARACTERS
            LABEL RECORDS ARE STANDARD.
-       01 RO-REPORTESALIDA PIC X(3000).
+       01 R1-REPORTE-SALIDA               PIC X(90).
 
        WORKING-STORAGE SECTION.
       *-----------------------
-       01 UT-S-DIRECCION-LECTURA PIC X(30).
-       01 UT-S-DIRECCION-SALIDA PIC X(30).
+      **SWITCHES
+       01 S000-ESTADOS.
+           05 S000-FINARCH                PIC 9.
+      *ESTADO DEL ARCHIVO
+           05 S000-ESTADOARCH             PIC X.
+           05 S000-ESTADOREPO             PIC X.
+
+
+       01 W000-CTES.
+           05 W000-PROG                   PIC X(8)       VALUE "CHE120".
+           05 W000-UT-S-DIRECCION-LECTURA PIC X(30)      VALUE
+       "ReporteEntrada.dat".
+           05 W000-UT-S-DIRECCION-SALIDA  PIC X(30)      VALUE
+       "REPORTESALIDA1.TXT".
+
+      *FECHA
+       01 W000-FECHA.
+           05 W000-YEAR                   PIC 99.
+           05 W000-MONTH                   PIC 99.
+           05 W000-DAY                     PIC 99.
+      *IDENTIDAD DE PROCEDIMIENTO
+       01 I010-ID-PROC.
+           05 I010-ID-PROC-NO-CTA.
+               10 I010-ID-PROC-BCO.
+                   15 I010-ID-PROC-PTA.
+                    20 I010-GPO           PIC XX.
+                    20 I010-EMP           PIC XXX.
+                    20 I010-PTA           PIC XXX.
+                   15 I010-BCO            PIC XXX.
+               10 I010-NO-CTA              PIC X(8).
 
       *IDENTIDADES ANTERIOR Y LEI
-       01 I001-RO-ID-ANT PIC X(31).
-       
-       01 I001-RO-ID-LEI.
-           05 I001-RO-ID-NOCTA.
-               10 I001-RO-ID-PTA.
-                   15 I001-RO-GPO PIC XX.
-                   15 I001-RO-EMP PIC XXX.
-                   15 I001-RO-PTA PIC XXX.
-               10 I001-RO-BCO     PIC XXX.
-               10 I001-RO-NOCTA   PIC X(8).
-           05 I001-RO-NOCHEQUE    PIC X(12).
+       01 I040-AI-ID-ANT                  PIC X(31).
 
-      *IDENTIDAD DE PROCEDIMIENTO
-       01 I002-RO-ID-PROC.
-        05 I002-RO-ID-PROC-NOCTA.
-           10 I002-RO-ID-PROC-PTA.
-               15 I002-RO-GPO PIC XX.
-               15 I002-RO-EMP PIC XXX.
-               15 I002-RO-PTA PIC XXX.
-           10 I002-RO-BCO     PIC XXX.
-           10 I002-RO-NOCTA   PIC X(8).
+       01 I040-AI-ID-LEI.
+           05 I040-AI-ID-NO-CTA.
+               10 I040-AI-ID-PTA.
+                   15 I040-AI-GPO         PIC XX.
+                   15 I040-AI-EMP         PIC XXX.
+                   15 I040-AI-PTA         PIC XXX.
+               10 I040-AI-BCO             PIC XXX.
+               10 I040-AI-NO-CTA          PIC X(8).
+           05 I040-AI-NO-CHEQUE           PIC X(12).
 
       * ACUMULADORES
-       01 A001-020-ACUM-CHEQUES-PTA   PIC S9(12)V99 .
-       01 A001-030-ACUM-CHEQUES-NOCTA PIC S9(12)V99 .
+       01 A010-ACUM-PTA.
+           05 A010-ACUM-CHEQUES-PTA       PIC S9(16)V99 .
+       01 A020-ACUM-NO-CTA.
+           05 A020-ACUM-CHEQUES-NO-CTA    PIC S9(12)V99 .
+
 
       * CIFRAS DE CONTROL
        01 A990-CIFRAS-CONTROL.
-           05 A990-PROCLEIDO PIC S9(9) COMP.
-           05 A990-REGSPROC  PIC S9(9) COMP.
-           05 A990-PTAPROC   PIC S9(9) COMP.
-           05 A990-NOCTAPROC PIC S9(9) COMP.
+           05 A990-PROC-LEIDO             PIC S9(9) COMP.
+           05 A990-REGS-PROC              PIC S9(9) COMP.
+           05 A990-PTA-PROC               PIC S9(9) COMP.
+           05 A990-NO-CTA-PROC            PIC S9(9) COMP.
+
+      *TABLA
+       01  T000-MONTHS-TABLE              PIC X(36)      VALUE
+       'ENEFEBMARABRMAYJUNJULAGOSEPOCTNOVDIC'.
+       01  T000-MONTH-TABLE          REDEFINES T000-MONTHS-TABLE.
+           05  T000-MONTH             OCCURS 12
+                                          PIC XXX.
+       01  T000-VARS.
+           05  T000-I                     PIC 99.
+           05  T000-NUM-ELEM              PIC S9(9)      COMP.
+           05  T000-MAX-ELEM              PIC S9(9)      COMP.
+
       *VARIABLES QUE GUARDAN DATOS
        01 R1-VARS.
-           05 R1-060-NUMHOJA     PIC S9(9) VALUE 0.
-           05 R1-060-NUMLIN      PIC S9(9).
-           05 R1-060-MAXLIN      PIC S9(9) VALUE +200.
-           05 R1-040-GPO         PIC XX.
-           05 R1-040-EMP         PIC XXX.
-           05 R1-040-PTA         PIC XXX.
-           05 R1-040-BCO         PIC XXX.
-           05 R1-040-NOCTA       PIC X(8).
-           05 R1-040-NOCHEQUE    PIC X(12).
-           05 R1-040-VALOR       PIC S9(12)V99.
-           05 R1-020-VALFIRSTAUX PIC 9 VALUE 0.
-
-      *FECHA
-       01 R1-FECHAACTUAL    PIC XXXX/XX/XXBXX/XX/XXXXXXX/XX.
-       01 R1-FECHAACTUALFOR PIC XXXX/XX/XXBXX/XX/XXXXXXX/XX.
-       01 R1-FECHA-CONVERT.
-               05 R1-00-YEAR  PIC 9999.
-               05 FILLER      PIC X VALUE "/".
-               05 R1-00-MONTH PIC 99.
-               05 FILLER      PIC X VALUE "/".
-               05 R1-00-DAY   PIC 99.
-       01 R1-FECHA-CONVERT2.
-               05 R1-00-DAY2   PIC 99.
-               05 FILLER       PIC X VALUE "/".
-               05 R1-00-MONTH2 PIC X(3).
-               05 FILLER       PIC X VALUE "/".
-               05 R1-00-YEAR2  PIC 9999.
+           05 R1-050-NUM-HOJA             PIC S9(9)       VALUE 0.
+           05 R1-050-NUM-LIN              PIC S9(9).
+           05 R1-050-MAX-LIN              PIC S9(9)       VALUE +50.
 
       *LINEAS DE TITULO
-       01 R1-LINEATITULO.
-           05 R1-PRIMERALINEA.
-               10 FILLER  PIC X(3) VALUE "P-".
-               10 CONSPRO PIC X(4).
-               10 FILLER  PIC X(11) VALUE SPACE.
-               10 FILLER  PIC X(30) VALUE "REPORTE DE CHEQUES COBRADOS".
-               10 FILLER  PIC X(10) VALUE SPACE.
-               10 FILLER  PIC X(6) VALUE "FECHA:".
-               10 R-FECHA PIC X(11).
-           05 R1-SEGUNDALINEA.
-               10 FILLER  PIC X(170) VALUE SPACES.
-               10 FILLER  PIC X(90) VALUE SPACES.
-               10 FILLER  PIC X(23) VALUE "ITS-DIVISION DESARROLLO".
-               10 FILLER  PIC X(11) VALUE SPACE.
-               10 FILLER  PIC X(22) VALUE "MOVIMIENTOS EFECTUADOS".
-               10 FILLER  PIC X(11) VALUE SPACE.
-               10 FILLER  PIC X(5) VALUE "HOJA:".
-               10 R-PAGNU PIC 9.
-           05 R1-TERCERALINEA.
-               10 FILLER  PIC X(90) VALUE SPACES.
-               10 FILLER  PIC X(12) VALUE "CONTABILIDAD".
-               10 FILLER  PIC X(155) VALUE SPACES.
-               10 FILLER  PIC X(170) VALUE SPACES.
-               10 FILLER  PIC X(3) VALUE "GPO".
-               10 FILLER  PIC X(20) VALUE SPACE.
-               10 FILLER  PIC X(3) VALUE "EMP".
-               10 FILLER  PIC X(20) VALUE SPACE.
-               10 FILLER  PIC X(3) VALUE "PTA".
-               10 FILLER  PIC X(20) VALUE SPACE.
-               10 FILLER  PIC X(5) VALUE "BCO.".
-               10 FILLER  PIC X(20) VALUE SPACE.
-               10 FILLER  PIC X(5) VALUE "NOCTA".
-               10 FILLER  PIC X(20) VALUE SPACE.
-               10 FILLER  PIC X(10) VALUE "NOCHEQUE".
-               10 FILLER  PIC X(20) VALUE SPACE.
-               10 FILLER  PIC X(15) VALUE "VALORCHEQUE".
-               10 FILLER  PIC X(10) VALUE SPACES.
+
+       01 R1-05-ENCABEZADOS-PRIMERA-LINEA.
+           05 FILLER                      PIC X           VALUE SPACES.
+           05 R1-05-CONSPRO               PIC X(8).
+           05 FILLER                      PIC X(18)       VALUE SPACES.
+           05 FILLER                      PIC X(27)       VALUE
+           "REPORTE DE CHEQUES COBRADOS".
+           05 FILLER                      PIC X(18)       VALUE SPACES..
+           05 FILLER                      PIC X(7)        VALUE
+           "FECHA: ".
+           05 R1-05-FECHA.
+               10 R1-05-DAY               PIC X(2).
+               10 FILLER                  PIC X           VALUE "/".
+               10 R1-05-MONTH             PIC X(3).
+               10 FILLER                  PIC X           VALUE "/".
+               10 R1-05-YEAR              PIC X(2).
+
+       01 R1-10-ENCABEZADOS-SEGUNDA-LINEA.
+           05 FILLER                      PIC X(24)       VALUE
+           "ITS-DIVISION DESARROLLO".
+           05 FILLER                      PIC X(9).
+           05 FILLER                      PIC X(22)       VALUE
+           "MOVIMIENTOS EFECTUADOS".
+           05 FILLER                      PIC X(26)       VALUE SPACES.
+           05 FILLER                      PIC X(5)        VALUE "HOJA ".
+           05 R1-10-PAGNU                 PIC Z(4).
+
+       01 R1-15-ENCABEZADOS-TERCERA-LINEA.
+           05 FILLER                      PIC X           VALUE SPACES.
+           05 FILLER                      PIC X(12)       VALUE
+           "CONTABILIDAD".
+           05 FILLER                      PIC X(77)       VALUE SPACES.
+       01 R1-20-ENCABEZADOS-CUARTA-LINEA.
+           05 FILLER                      PIC X(4)        VALUE "GPO".
+           05 FILLER                      PIC X(3)        VALUE SPACE.
+           05 FILLER                      PIC X(3)        VALUE "EMP".
+           05 FILLER                      PIC X(3)        VALUE SPACE.
+           05 FILLER                      PIC X(3)        VALUE "PTA".
+           05 FILLER                      PIC X(3)        VALUE SPACE.
+           05 FILLER                      PIC X(3)        VALUE "BCO".
+           05 FILLER                      PIC X(3)        VALUE SPACE.
+           05 FILLER                      PIC X(8)        VALUE "NOCTA".
+           05 FILLER                      PIC X(3)        VALUE SPACE.
+           05 FILLER                      PIC X(12)       VALUE
+           "NOCHEQUE".
+           05 FILLER                      PIC X(3)        VALUE SPACE.
+           05 FILLER                      PIC X(18)       VALUE
+           "VALORCHEQUE".
+           05 FILLER                      PIC X(27)       VALUE SPACES.
+
       * IMPRIME EL DETALLE QUE HAY EN EL ARHIVO
-       01 R1-LINEADETALLE.
-           05 FILLER PIC X(5) VALUE SPACES.
-           05 R1-040-PRINTGPO PIC X(2).
-           05 FILLER PIC X(20) VALUE SPACES.
-           05 R1-040-PRINTEMP PIC X(3).
-           05 FILLER PIC X(20) VALUE SPACE.
-           05 R1-040-PRINTPTA PIC X(3).
-           05 FILLER PIC X(20) VALUE SPACE.
-           05 R1-040-PRINTBCO PIC X(3).
-           05 FILLER PIC X(20) VALUE SPACE.
-           05 R1-040-PRINTNOCTA PIC X(8).
-           05 FILLER PIC X(20) VALUE SPACE.
-           05 R1-040-PRINTNOCHEQUE PIC X(12).
-           05 FILLER PIC X(18) VALUE SPACE.
-           05 R1-040-PRINTVALORCHEQUE PIC S9(12)V99.
-           05 R1-ESPACIOS PIC X(167).
+       01 R1-25-LINEADETALLE.
+           05 FILLER                      PIC X(2)        VALUE SPACES.
+           05 R1-25-PRINT-GPO             PIC X(2).
+           05 FILLER                      PIC X(3)        VALUE SPACES.
+           05 R1-25-PRINT-EMP             PIC X(3).
+           05 FILLER                      PIC X(3)        VALUE SPACES.
+           05 R1-25-PRINT-PTA             PIC X(3).
+           05 FILLER                      PIC X(3)        VALUE SPACES.
+           05 R1-25-PRINT-BCO             PIC X(3).
+           05 FILLER                      PIC X(3)        VALUE SPACES.
+           05 R1-25-PRINT-NO-CTA          PIC X(8).
+           05 FILLER                      PIC X(3)        VALUE SPACES.
+           05 R1-25-PRINT-NO-CHEQUE       PIC X(12).
+           05 FILLER                      PIC X(3)        VALUE SPACES.
+           05 R1-25-PRINT-VALOR-CHEQUE    PIC ZZZ,ZZZ,ZZZ,ZZZ.99.
+           05 FILLER                      PIC X(28)       VALUE SPACES.
+
       *IMPRIME LA LINEA TOTAL POR NUMERO DE CUENTA
-       01 R1-LINEATOTALCTA.
-           05 FILLER PIC X(167) VALUE SPACES.
-      *     05 FILLER PIC X(169) VALUE SPACES.
-           05 FILLER PIC X(9) VALUE SPACE.
-           05 FILLER PIC X(25) VALUE "T O T A L C U E N T A:".
-           05 FILLER PIC X(120) VALUE SPACE.
-           05 R1-PRINTACUMCTA PIC S9(12)V99.
-           05 FILLER PIC X(167) VALUE SPACES.
-           05 FILLER PIC X(4) VALUE ".".
+       01  R1-30-TOTAL-NO-CTA.
+           05  FILLER                     PIC X(6)        VALUE SPACES.
+           05  FILLER                     PIC X(22)       VALUE
+           "T O T A L  C U E N T A".
+           05  FILLER                     PIC X(19)       VALUE SPACES.
+           05  R1-30-TOTAL-CUENTA         PIC ZZZ,ZZZ,ZZZ,ZZZ,ZZZ.99.
+           05  FILLER                     PIC X(24)       VALUE SPACES.
 
-      *IMPRIME LINEA TOTAL POR PLANTA
-       01 R1-LINEATOTALPTA.
-           05 FILLER PIC X(169) VALUE SPACES.
-           05 FILLER PIC X(9) VALUE SPACE.
-           05 FILLER PIC X(25) VALUE "T O T A L P L A N T A:".
-           05 FILLER PIC X(120) VALUE SPACE.
-           05 R1-PRINTACUMPTA PIC S9(12)V99.
-           05 FILLER PIC X(3) VALUE SPACES.
-           05 FILLER PIC X(4) VALUE ".".
-           05 FILLER PIC X(165) VALUE SPACES.
-           05 FILLER PIC X(4) VALUE ".".
-
-      *SWITCHES
-       01 WS-ESTADOS.
-           05 WS-FINARCH    PIC X(1) VALUE "0".
-      *ESTADO DEL ARCHIVO
-           05 WS-ESTADOARCH PIC X(1) VALUE "1".
-           05 WS-ESTADOREPO PIC X(1) VALUE "1".
-
-      *ABORTION CODE
-       01 ABORTA_CODE   PIC S9(4) COMP VALUE +4004.
-       
-       01 W000-CTES.
-           05 W000-PROG PIC X(8) VALUE "6".
-       
+       01  R1-35-TOTAL-PTA.
+           05  FILLER                     PIC X(6)        VALUE SPACES.
+           05  FILLER                     PIC X(22)       VALUE
+           "T O T A L  P L A N T A".
+           05  FILLER                     PIC X(17)       VALUE SPACES.
+           05  R1-35-TOTAL-PLANTA         PIC Z,ZZZ,ZZZ,ZZZ,ZZZ,ZZZ.99.
+           05  FILLER                     PIC X(24)       VALUE SPACES.
        PROCEDURE DIVISION.
       *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-
-       MAIN-PROCEDURE.
-           PERFORM 010-INICIO.
-           PERFORM 100-TERMINA.
-           STOP RUN.
-      ** ADD OTHER PROCEDURES HERE
-       010-INICIO.
-     *   MOVE "phone1.dat" TO UT-S-DIRECCION-LECTURA
-         MOVE "phone.dat" TO UT-S-DIRECCION-SALIDA
-      *  ACCEPT UT-S-DIRECCION-LECTURA
-      *  ACCEPT UT-S-DIRECCION-SALIDA
-           PERFORM 000-CONTROLPROG.
-
-       000-CONTROLPROG.
-      ****************ABRE ARCHIVO Y REPO*************************************
+       000-CONTROL SECTION.
+       000-0100-INICIO.
            OPEN INPUT ARCH-AI-ARCHIVO-I.
-           OPEN OUTPUT REPO-RO-REPORTE-O.
-      ****************SWITCHES*************************************
-           MOVE "1" TO WS-ESTADOARCH
-           WS-ESTADOREPO.
-           MOVE "0" TO WS-FINARCH.
-           ADD 0 TO R1-060-NUMHOJA
-           MOVE 0 TO R1-060-NUMLIN
-           MOVE R1-060-NUMHOJA TO R-PAGNU
-      ****************FECHA*************************************
-           MOVE FUNCTION WHEN-COMPILED TO
-           R1-FECHAACTUALFOR R1-FECHAACTUAL
-           INSPECT R1-FECHAACTUALFOR REPLACING ALL "/" BY ":"
-           AFTER INITIAL SPACE
-           MOVE R1-FECHAACTUALFOR TO R1-FECHA-CONVERT
-            IF R1-00-MONTH=01 THEN
-               MOVE R1-00-DAY TO R1-00-DAY2
-               MOVE "JAN" TO R1-00-MONTH2
-               MOVE R1-00-YEAR TO R1-00-YEAR2
-               END-IF.
-           IF R1-00-MONTH=02 THEN
-               MOVE R1-00-DAY TO R1-00-DAY2
-               MOVE "FEB" TO R1-00-MONTH2
-               MOVE R1-00-YEAR TO R1-00-YEAR2
-               END-IF.
-           IF R1-00-MONTH=03 THEN
-               MOVE R1-00-DAY TO R1-00-DAY2
-               MOVE "MAR" TO R1-00-MONTH2
-               MOVE R1-00-YEAR TO R1-00-YEAR2
-               END-IF.
-           IF R1-00-MONTH=04 THEN
-               MOVE R1-00-DAY TO R1-00-DAY2
-               MOVE "APR" TO R1-00-MONTH2
-               MOVE R1-00-YEAR TO R1-00-YEAR2
-               END-IF.
-           IF R1-00-MONTH=05 THEN
-               MOVE R1-00-DAY TO R1-00-DAY2
-               MOVE "MAY" TO R1-00-MONTH2
-               MOVE R1-00-YEAR TO R1-00-YEAR2
-               END-IF.
-           IF R1-00-MONTH=06 THEN
-               MOVE R1-00-DAY TO R1-00-DAY2
-               MOVE "JUN" TO R1-00-MONTH2
-               MOVE R1-00-YEAR TO R1-00-YEAR2
-               END-IF.
-           IF R1-00-MONTH=07 THEN
-               MOVE R1-00-DAY TO R1-00-DAY2
-               MOVE "JUL" TO R1-00-MONTH2
-               MOVE R1-00-YEAR TO R1-00-YEAR2
-               END-IF.
-           IF R1-00-MONTH=08 THEN
-               MOVE R1-00-DAY TO R1-00-DAY2
-               MOVE "AUG" TO R1-00-MONTH2
-               MOVE R1-00-YEAR TO R1-00-YEAR2
-               END-IF.
-           IF R1-00-MONTH=09 THEN
-               MOVE R1-00-DAY TO R1-00-DAY2
-               MOVE "SEP" TO R1-00-MONTH2
-               MOVE R1-00-YEAR TO R1-00-YEAR2
-               END-IF.
-           IF R1-00-MONTH=10 THEN
-               MOVE R1-00-DAY TO R1-00-DAY2
-               MOVE "OCT" TO R1-00-MONTH2
-               MOVE R1-00-YEAR TO R1-00-YEAR2
-               END-IF.
-           IF R1-00-MONTH=11 THEN
-               MOVE R1-00-DAY TO R1-00-DAY2
-               MOVE "NOV" TO R1-00-MONTH2
-               MOVE R1-00-YEAR TO R1-00-YEAR2
-               END-IF.
-           IF R1-00-MONTH=12 THEN
-               MOVE R1-00-DAY TO R1-00-DAY2
-               MOVE "DEC" TO R1-00-MONTH2
-               MOVE R1-00-YEAR TO R1-00-YEAR2
-               END-IF.
-           MOVE W000-PROG TO CONSPRO
-           MOVE R1-FECHA-CONVERT2 TO R-FECHA
-      ****************ENCABEZADOS*************************************
-           PERFORM 060-ENCABEZADOS.
-           MOVE LOW-VALUES TO I001-RO-ID-LEI
+           MOVE 0 TO S000-ESTADOARCH.
+           MOVE 0 TO S000-FINARCH.
+           OPEN OUTPUT REPO-R1-REPORTE-O.
+           MOVE 0 TO S000-ESTADOREPO.
+           MOVE 0 TO R1-050-NUM-HOJA.
+           MOVE W000-PROG TO R1-05-CONSPRO.
+           MOVE FUNCTION CURRENT-DATE(3:6) TO W000-FECHA.
+           MOVE W000-DAY TO R1-05-DAY.
+           MOVE W000-YEAR TO R1-05-YEAR.
+           SET  T000-I TO W000-MONTH.
+           MOVE T000-MONTH(T000-I) TO R1-05-MONTH.
            MOVE ZEROS TO A990-CIFRAS-CONTROL.
-           PERFORM 050-LEEREG.
-
-      *************CICLO WHILE*****************************************
-           PERFORM 020-PROCPTA UNTIL WS-FINARCH =1.
-
-      ************CIERRA ARCHIVOS Y CAMBIA ESTADOS*************************************
+           MOVE LOW-VALUES TO I040-AI-ID-LEI.
+           PERFORM 040-LEE-REG.
+       000-0200-PROC-PTA.
+           PERFORM 010-PROC-PTA UNTIL S000-FINARCH =1.
+       000-0300-TERMINA.
            CLOSE ARCH-AI-ARCHIVO-I.
-           CLOSE REPO-RO-REPORTE-O.
+           MOVE 1 TO S000-ESTADOARCH.
+           CLOSE REPO-R1-REPORTE-O.
+           MOVE 1 TO S000-ESTADOREPO.
            PERFORM 990-CIFRAS-DE-CONTROL.
+       000-0990-FIN.
+           GOBACK.
+       010-PROC-PTA SECTION.
+       010-0100-INICIO.
+           MOVE I040-AI-ID-PTA TO I010-ID-PROC-PTA.
+           MOVE R1-050-MAX-LIN TO R1-050-NUM-LIN.
+           MOVE 0 TO A010-ACUM-CHEQUES-PTA.
+       010-0200-PROC-PTA.
+           PERFORM 020-PROC-NO-CTA
+               UNTIL I010-ID-PROC-PTA NOT = I040-AI-ID-PTA.
+       010-0300-ESCRIBE-PTA.
+           MOVE A010-ACUM-PTA TO R1-35-TOTAL-PLANTA.
+           IF (R1-050-NUM-LIN + 1)>R1-050-MAX-LIN THEN
+               PERFORM 050-ENCABEZADOS
+               END-IF.
+*******               WRITE R1-REPORTESALIDA AFTER 2.
+      *        ADD 2 TO R1-050-NUMLIN.
 
-       
-       060-ENCABEZADOS.
-           ADD 1 TO R1-060-NUMHOJA
-           MOVE R1-060-NUMHOJA TO R-PAGNU
-           MOVE R1-LINEATITULO TO RO-REPORTESALIDA
-           WRITE RO-REPORTESALIDA BEFORE ADVANCING 1
-           ADD 6 TO R1-060-NUMLIN.
-
-       020-PROCPTA.
-           IF R1-020-VALFIRSTAUX=0 THEN
-               ADD 1 TO R1-020-VALFIRSTAUX
-               ELSE
-                   PERFORM 060-ENCABEZADOS
-                   END-IF.
-           MOVE I001-RO-ID-PTA TO I002-RO-ID-PROC-PTA.
-           COMPUTE A001-020-ACUM-CHEQUES-PTA=0.
-      *INICIALIZA EL ACUMULADOR DEL TOTAL DE CHEQUES POR PLANTA
-      *LLAMA AL MODULO DE PLANTA HASTA QUE LOS ID'S SEAN DIFERENTES
-           PERFORM 030-PROCNOCTA UNTIL I002-RO-ID-PROC-PTA NOT EQUAL TO
-       I001-RO-ID-PTA.
-      *LLAMO AL AUXILIAR PARA REALIZAR LA CONDICION SIN AFECTAR
-      *A LA VARIABLE R1-060-NUMLIN
-           ADD 1 TO R1-060-NUMLIN
-           IF R1-060-NUMLIN>R1-060-MAXLIN THEN
-           PERFORM 060-ENCABEZADOS
-           END-IF.
-           SUBTRACT 1 FROM R1-060-NUMLIN
-           MOVE A001-020-ACUM-CHEQUES-PTA TO R1-PRINTACUMPTA.
-      *     DISPLAY "ACUM PTA " A001-020-ACUM-CHEQUES-PTA
-           MOVE R1-LINEATOTALPTA TO RO-REPORTESALIDA.
-           WRITE RO-REPORTESALIDA BEFORE ADVANCING 1
-           ADD 1 TO R1-060-NUMLIN.
-           ADD 1 TO A990-PTAPROC.
-
-       030-PROCNOCTA.
-      *INICIALIZA EL ACUMULADOR DE CHEQUES POR CUENTA
-           MOVE I001-RO-ID-NOCTA TO I002-RO-ID-PROC-NOCTA
-           COMPUTE A001-030-ACUM-CHEQUES-NOCTA=0
-           PERFORM 040-PROCREG UNTIL I001-RO-ID-NOCTA NOT =
-           I002-RO-ID-PROC-NOCTA.
-           ADD A001-030-ACUM-CHEQUES-NOCTA TO A001-020-ACUM-CHEQUES-PTA.
-           ADD 2 TO R1-060-NUMLIN
-           IF R1-060-NUMLIN>R1-060-MAXLIN THEN
-           PERFORM 060-ENCABEZADOS
-           END-IF.
-           SUBTRACT 2 FROM R1-060-NUMLIN
-           MOVE A001-030-ACUM-CHEQUES-NOCTA TO R1-PRINTACUMCTA
-           MOVE R1-LINEATOTALCTA TO RO-REPORTESALIDA
-           WRITE RO-REPORTESALIDA BEFORE ADVANCING 1
-           ADD 2 TO R1-060-NUMLIN
-           ADD 2 TO R1-060-NUMLIN
-           IF R1-060-NUMLIN>R1-060-MAXLIN THEN
-           PERFORM 060-ENCABEZADOS
-           END-IF.
-           ADD 1 TO R1-060-NUMLIN
-           ADD 1 TO A990-NOCTAPROC.
+           WRITE R1-REPORTE-SALIDA FROM R1-35-TOTAL-PTA AFTER 1.
+           ADD 1 TO R1-050-NUM-LIN.
+       010-0400-ACT-CIFRAS-DE-CONTROL.
+           ADD 1 TO A990-PTA-PROC.
+       010-0990-TERMINA.
+       EXIT.
+       020-PROC-NO-CTA SECTION.
+       020-0100-INICIO.
+           MOVE I040-AI-ID-NO-CTA TO I010-ID-PROC-NO-CTA.
+           MOVE 0 TO A020-ACUM-CHEQUES-NO-CTA.
+       020-0200-PROC-NO-CTA.
+           PERFORM  030-PROC-REG
+               UNTIL I010-ID-PROC-NO-CTA NOT EQUAL TO I040-AI-ID-NO-CTA.
+       020-0300-ESCRIBE-NO-CTA.
+           MOVE A020-ACUM-NO-CTA TO R1-30-TOTAL-CUENTA.
+           IF (R1-050-NUM-LIN + 2)>R1-050-MAX-LIN THEN
+               PERFORM 050-ENCABEZADOS
+               END-IF.
+           WRITE R1-REPORTE-SALIDA FROM R1-30-TOTAL-NO-CTA AFTER 2.
+           ADD 2 TO R1-050-NUM-LIN.
 
 
-       040-PROCREG.
+       020-0400-ESCRIBE-LINEAS.
+           IF (R1-050-NUM-LIN + 2) > R1-050-MAX-LIN
+           THEN
+               PERFORM 050-ENCABEZADOS
+               END-IF.
+           WRITE R1-REPORTE-SALIDA FROM ' ' AFTER 2.
+           ADD 2 TO R1-050-NUM-LIN.
+
+       020-0500-ACTUALIZA-REGISTROS.
+           ADD A020-ACUM-CHEQUES-NO-CTA TO A010-ACUM-CHEQUES-PTA.
+           ADD 1 TO A990-NO-CTA-PROC.
+       020-0990-TERMINA.
+           EXIT.
+
+       030-PROC-REG SECTION.
+       030-0100-INICIO.
       *MODULO QUE VA A SUMAR LO QUE TIENE VALOR POR CADA CUENTA.
       *MUEVE LOS VALORES DE LAS VARIABLES LEIDAS A LAS VARIABLES
       *QUE UTILIZARA PARA IMPRIMIR EL DETALLE
-      * DISPLAY I001-RO-ID-NOCTA
-           MOVE RI-GPO TO R1-040-GPO
-           MOVE RI-EMP TO R1-040-EMP
-           MOVE RI-PTA TO R1-040-PTA
-           MOVE RI-BCO TO R1-040-BCO
-           MOVE RI-NOCTA TO R1-040-NOCTA
-           MOVE RI-NOCHEQUE TO R1-040-NOCHEQUE
-           MOVE RI-VALORCHEQUE TO R1-040-VALOR
 
-           ADD R1-040-VALOR TO A001-030-ACUM-CHEQUES-NOCTA
-           MOVE R1-040-GPO TO R1-040-PRINTGPO
-           MOVE R1-040-EMP TO R1-040-PRINTEMP
-           MOVE R1-040-PTA TO R1-040-PRINTPTA
-           MOVE R1-040-BCO TO R1-040-PRINTBCO
-           MOVE R1-040-NOCTA TO R1-040-PRINTNOCTA
-      *     DISPLAY R1-040-PRINTNOCTA
-           MOVE R1-040-NOCHEQUE TO R1-040-PRINTNOCHEQUE
-      *     DISPLAY R1-040-PRINTNOCHEQUE
-           MOVE R1-040-VALOR TO R1-040-PRINTVALORCHEQUE
-      *     DISPLAY R1-040-PRINTVALORCHEQUE
-           MOVE R1-LINEADETALLE TO RO-REPORTESALIDA
-           WRITE RO-REPORTESALIDA BEFORE ADVANCING 1
-           PERFORM 050-LEEREG
-           ADD 1 TO R1-060-NUMLIN
-           ADD 1 TO A990-REGSPROC.
+           MOVE I040-AI-GPO TO R1-25-PRINT-GPO.
+           MOVE I040-AI-EMP TO R1-25-PRINT-EMP.
+           MOVE I040-AI-PTA TO R1-25-PRINT-PTA.
+           MOVE I040-AI-BCO TO R1-25-PRINT-BCO.
+           MOVE I040-AI-NO-CTA TO R1-25-PRINT-NO-CTA.
+      *     DISPLAY R1-030-PRINTNOCTA
+           MOVE I040-AI-NO-CHEQUE TO R1-25-PRINT-NO-CHEQUE.
+           MOVE RI-VALOR-CHEQUE TO R1-25-PRINT-VALOR-CHEQUE.
+      *     DISPLAY R1-030-PRINTVALORCHEQUE
+       030-0200-ESCRIBE-REG.
+           IF (R1-050-NUM-LIN + 1)>R1-050-MAX-LIN THEN
+               PERFORM 050-ENCABEZADOS
+               END-IF.
+               
+           MOVE R1-25-LINEADETALLE TO R1-REPORTE-SALIDA.
+           WRITE R1-REPORTE-SALIDA BEFORE ADVANCING 1.
+           ADD RI-VALOR-CHEQUE TO A020-ACUM-CHEQUES-NO-CTA.
+           PERFORM 040-LEE-REG.
+           ADD 1 TO R1-050-NUM-LIN.
+       030-0300-ACT-CIFRAS-DE-CONTROL.
+           ADD 1 TO A990-REGS-PROC.
 
-       050-LEEREG.
-           MOVE I001-RO-ID-LEI TO I001-RO-ID-ANT
-           READ ARCH-AI-ARCHIVO-I NEXT RECORD
-           MOVE RI-GPO TO I001-RO-GPO
-           MOVE RI-EMP TO I001-RO-EMP
-           MOVE RI-PTA TO I001-RO-PTA
-           MOVE RI-BCO TO I001-RO-BCO
-           MOVE RI-NOCTA TO I001-RO-NOCTA
-           MOVE RI-NOCHEQUE TO I001-RO-NOCHEQUE
-           IF RI-GPO EQUAL TO SPACES
-           MOVE "1" TO WS-FINARCH
-           IF WS-FINARCH=1 THEN
-           MOVE HIGH-VALUES TO I001-RO-ID-LEI
-           IF I001-RO-ID-ANT > I001-RO-ID-LEI THEN
-           PERFORM 980-ABORTA.
-       .
-       980-ABORTA.
+       030-0990-TERMINA.
+           EXIT.
+           
+       040-LEE-REG SECTION.
+       040-0100-INICIO.
+           MOVE I040-AI-ID-LEI TO I040-AI-ID-ANT.
+       040-0200-LEE.
+           READ ARCH-AI-ARCHIVO-I AT END MOVE 1 TO S000-FINARCH.
+
+           IF S000-FINARCH = 1 THEN
+               MOVE HIGH-VALUES TO I040-AI-ID-LEI
+               ELSE
+           MOVE RI-GPO TO I040-AI-GPO
+           MOVE RI-EMP TO I040-AI-EMP
+           MOVE RI-PTA TO I040-AI-PTA
+           MOVE RI-BCO TO I040-AI-BCO
+           MOVE RI-NO-CTA TO I040-AI-NO-CTA
+           MOVE RI-NO-CHEQUE TO I040-AI-NO-CHEQUE
+           ADD 1 TO A990-PROC-LEIDO.
+
+
+
+       040-0400-ABORTA.
+           IF I040-AI-ID-ANT > I040-AI-ID-LEI THEN
+          PERFORM 980-ABORTA.
+       040-0990-TERMINA.
+           EXIT.
+           
+       050-ENCABEZADOS SECTION.
+       050-0100-INICIO.
+           ADD 1 TO R1-050-NUM-HOJA.
+
+           MOVE R1-050-NUM-HOJA TO R1-10-PAGNU.
+       050-0200-ESCRIBE.
+           WRITE R1-REPORTE-SALIDA FROM R1-05-ENCABEZADOS-PRIMERA-LINEA
+           AFTER PAGE.
+           WRITE R1-REPORTE-SALIDA FROM R1-10-ENCABEZADOS-SEGUNDA-LINEA
+           AFTER 2.
+           WRITE R1-REPORTE-SALIDA FROM R1-15-ENCABEZADOS-TERCERA-LINEA
+           AFTER 1.
+           WRITE R1-REPORTE-SALIDA FROM R1-20-ENCABEZADOS-CUARTA-LINEA
+           AFTER 2.
+           ADD 6 TO R1-050-NUM-LIN.
+
+       050-0990-TERMINA.
+           EXIT.
+       980-ABORTA SECTION.
+       980-0100-INICIO.
       ****************CONDICION DE SI EL ARCHIVO ESTA CERRADO***********
-           IF WS-ESTADOARCH=1 THEN
-           CLOSE ARCH-AI-ARCHIVO-I
-           MOVE 0 TO WS-ESTADOARCH
-           END-IF.
+           IF S000-ESTADOARCH=1 THEN
+           CLOSE ARCH-AI-ARCHIVO-I.
+           MOVE 0 TO S000-ESTADOARCH.
+          
       *    *********CONDICION DE SI EL ARCHIVO REPO ESTA CERRADO***********
-           IF WS-ESTADOREPO=1 THEN
-           CLOSE REPO-RO-REPORTE-O
-           MOVE 0 TO WS-ESTADOREPO
-           END-IF.
+           IF S000-ESTADOREPO=1 THEN
+           CLOSE REPO-R1-REPORTE-O.
+           MOVE 0 TO S000-ESTADOREPO.
+          
       *    **************LLAMADA AL MODULO CIFRAS DE CONTROL***********
-           PERFORM 990-CIFRAS-DE-CONTROL
+       980-0200-ACT-CIFRAS-DE-CONTROL.
+           PERFORM 990-CIFRAS-DE-CONTROL.
       *    **************MENSAJE DE TERMINACION FALLIDA***********
-           DISPLAY "TERMINACIÓN ANORMAL"
-      *    **************CODIGO DE ABORTA***********
-           MOVE ABORTA_CODE TO RETURN-CODE
-           PERFORM 100-TERMINA.
+           DISPLAY "TERMINACIÓN ANORMAL".
+       980-0990-TERMINA.
+           EXIT.
+       990-CIFRAS-DE-CONTROL SECTION.
+       990-0100-INICIO.
+       DISPLAY W000-PROG '  REG.S LEIDOS                           '
+      -    '           ' A990-PROC-LEIDO   .
 
-       990-CIFRAS-DE-CONTROL.
-           DISPLAY "CIFRA PROCLEIDO: "A990-PROCLEIDO.
-           DISPLAY "CIFRA REGSPROC: "A990-REGSPROC.
-           DISPLAY "CIFRA PTAPROC: "A990-PTAPROC.
-           DISPLAY "CIFRA NOCTAPROC: "A990-NOCTAPROC.
+       DISPLAY W000-PROG '  REG.S PROCESADOS                       '
+      -    '            ' A990-REGS-PROC.
 
-       100-TERMINA.
-           END PROGRAM REPORTESPROG.
+       DISPLAY W000-PROG '  PLANTAS PROCESADAS                     '
+      -    '           ' A990-PTA-PROC.
+
+       DISPLAY W000-PROG '  CUENTAS PROCESADAS                     '
+      -    '           ' A990-NO-CTA-PROC.
+       990-0990-TERMINA.
+           EXIT.
