@@ -492,32 +492,43 @@
                DISPLAY '          TERMINACION ANORMAL, CODIGO 16  '
                PERFORM 980-ABORTA
                END-IF.
-           MOVE FUNCTION CURRENT-DATE(1:8) TO W000-FECHA.
+
        010-0200-VALIDA-FECHA.
            IF ((RI-F-COMP-YEAR>=0) AND (RI-F-MONTH>=1 AND
                RI-F-MONTH<=12) AND (RI-F-DAY>=1
                AND
-               (RI-F-MONTH = 2 AND RI-F-DAY <29)))
+               (RI-F-MONTH = 2 AND ((((FUNCTION REM(RI-F-YEAR,400)=0 OR
+               (FUNCTION REM(RI-F-YEAR,4)=0 AND FUNCTION
+               REM(RI-F-YEAR,100) NOT =0))
+               AND
+               RI-F-DAY<30) OR ((FUNCTION REM(RI-F-YEAR,400) NOT =0 OR
+               (FUNCTION REM(RI-F-YEAR,4)NOT =0 AND FUNCTION
+               REM(RI-F-YEAR,100) =0)) AND RI-F-DAY <29))))))
               THEN
                MOVE RI-F-YEAR TO W000-YEAR
                MOVE RI-F-MONTH TO W000-MONTH
                MOVE RI-F-DAY TO W000-DAY
                ELSE IF ((RI-F-COMP-YEAR>=0) AND (RI-F-MONTH>= 1 AND
                    RI-F-MONTH<=12) AND (RI-F-DAY>=1 AND
-                   (FUNCTION MOD(RI-F-MONTH,2) = 0 AND
+                   ((RI-F-MONTH = 04 OR RI-F-MONTH =06 OR RI-F-MONTH
+                   =09 OR RI-F-MONTH = 11) AND
                  RI-F-DAY<=30 )))
                  MOVE RI-F-COMP-YEAR TO W000-YEAR
                  MOVE RI-F-MONTH TO W000-MONTH
                  MOVE RI-F-DAY TO W000-DAY
-                 END-IF.
-
-                     IF ((RI-F-COMP-YEAR>=0) AND (RI-F-MONTH>= 1 AND
+                 ELSE IF ((RI-F-COMP-YEAR>=0) AND (RI-F-MONTH>= 1 AND
                    RI-F-MONTH<=12) AND (RI-F-DAY>=1 AND
-                   (FUNCTION MOD(RI-F-MONTH,2) = 1 AND
+                   ((RI-F-MONTH = 01 OR RI-F-MONTH =03 OR RI-F-MONTH
+                   =05 OR RI-F-MONTH = 07 OR RI-F-MONTH = 08
+                   OR RI-F-MONTH = 10 OR RI-F-MONTH = 12) AND
                  RI-F-DAY<=31 )))
                  MOVE RI-F-COMP-YEAR TO W000-YEAR
                  MOVE RI-F-MONTH TO W000-MONTH
                  MOVE RI-F-DAY TO W000-DAY
+                 ELSE
+                   DISPLAY '          TERMINACION ANORMAL, CODIGO 16  '
+                   DISPLAY '          FECHA INVALIDA                  '
+                     PERFORM 980-ABORTA
                  END-IF.
 
             MOVE W000-DAY TO R1-05-DAY.
@@ -539,14 +550,21 @@
            MOVE LOW-VALUES TO I080-AT-ID-LEI-TABLA.
 
        020-0200-CHECA-CLAVE.
-           IF I080-CLAVE = 'T04' THEN
+           IF I080-CLAVE < 'T04' THEN
+               PERFORM 080-LEE-REG-TABLA
+
+           ELSE IF I080-CLAVE = 'T04' THEN
                PERFORM 020-0300-T04-LEE
-        END-IF.
+               PERFORM 080-LEE-REG-TABLA
 
-           IF I080-CLAVE = 'T05' THEN
-               PERFORM 020-0400-T05-LEE.
 
-           PERFORM 080-LEE-REG-TABLA.
+           ELSE IF I080-CLAVE = 'T05' THEN
+               PERFORM 020-0400-T05-LEE
+               PERFORM 080-LEE-REG-TABLA
+               
+           ELSE
+               PERFORM 020-0600-FINAL
+               END-IF.
        020-0300-T04-LEE.
 
                ADD 1 TO T020-NUM-ELEM-T04
